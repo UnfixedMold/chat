@@ -1,5 +1,8 @@
-server: helpers.o server.o
+win-server: helpers.o server.o
 	gcc obj/helpers.o obj/server.o -lws2_32 -o bin/server
+
+unix-server: helpers.o server.o
+	gcc obj/helpers.o obj/server.o -o bin/server
 
 helpers.o: src/helpers.c headers/helpers.h
 	gcc -c src/helpers.c -o obj/helpers.o
