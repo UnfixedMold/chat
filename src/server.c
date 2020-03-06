@@ -16,26 +16,9 @@
 
 #endif
 
+#include "../headers/helpers.h"
+
 #define PORT "3490"
-
-void close_socket(int socket) {
-
-	#ifdef _WIN32
-		closesocket(socket);
-	#else
-		close(socket);
-	#endif
-
-}
-
-void* get_sock_addr(struct sockaddr_storage *storage) {
-
-	if(storage->ss_family == AF_INET) {
-		return &((struct sockaddr_in*)storage)->sin_addr;
-	}
-
-	return &((struct sockaddr_in6*)storage)->sin6_addr;
-}
 
 int get_listener_socket() {
 
@@ -126,6 +109,9 @@ int main() {
 
 	fdmax = listener;
 
+	char buf[256];
+	int rbytes;
+
 	while(1) {
 		tempreadfds = readfds;
 
@@ -158,12 +144,36 @@ int main() {
 						if(ip<=0) {
 							perror("inet_ntop");
 						} else {
-							printf("Client %s connected!", ip);
+							printf("Client %s connected!\n", ip);
 						}
 
 						#else
-							printf("Client connected!");
+							printf("Client connected!\n");
 						#endif
+					}
+				} else {
+					rbytes = recv(i, buf, sizeof buf, 0);
+
+					if(rbytes<=0) {
+
+						switch(rbytes) {
+							case -1:
+								perror("recv");
+								break;
+
+							case 0:
+								printf("connection closed!\n");
+								break;
+						};
+						
+						close_socket(i);
+						FD_CLR(i, &readfds);
+						
+					} else {
+						
+						buf[rbytes] = '\0';
+
+						printf("%d: %s\n", i, buf);
 					}
 				}
 			};
