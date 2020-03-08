@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/fcntl.h>
 
 #ifdef _WIN32
 	#define _WIN32_WINNT 0x0A00
@@ -12,6 +11,7 @@
 	#include <unistd.h>
 	#include <netinet/in.h>
 	#include <arpa/inet.h>
+    #include <sys/fcntl.h>
 #endif
 
 #include "../headers/helpers.h"
@@ -87,10 +87,12 @@ int main(int argc, char *argv[]) {
 
     FD_ZERO(&readfds);
     FD_ZERO(&tempreadfds);
-    FD_SET(STDIN, &readfds);
     FD_SET(servfd, &readfds);
 
-    fcntl(STDIN, F_SETFL, O_NONBLOCK);
+    #ifndef _WIN32
+        fcntl(STDIN, F_SETFL, O_NONBLOCK);
+        FD_SET(STDIN, &readfds);
+    #endif
 
     while(1) {
 
@@ -105,29 +107,7 @@ int main(int argc, char *argv[]) {
         for(int i=0; i<=fdmax; i++) {
 			if(FD_ISSET(i, &tempreadfds)) {
 
-                if(i == STDIN) {
-
-                    char msg[MSGSIZE];
-                    memset(msg,0, MSGSIZE);
-
-                    char c;
-                    int msglen = 0;
-                    
-                    while(read(i, &c, 1) > 0) {
-                        msg[msglen] = c;
-                        msglen++;
-                    }
-
-                    msg[--msglen]='\0';
-
-                    msglen = send_msg(servfd, msg);
-
-                    if(msglen == -1) {
-                        perror("send");
-                        close_socket(servfd);
-                    }
-
-                } else if(i == servfd) {
+                if(i == servfd) {
                     
                     char msg[MSGSIZE];
                     memset(msg,0, MSGSIZE);
@@ -150,6 +130,30 @@ int main(int argc, char *argv[]) {
 						printf("%s\n", msg);
 					}
                 }
+                #ifndef _WIN32
+                    else if(i == STDIN) {
+
+                        char msg[MSGSIZE];
+                        memset(msg,0, MSGSIZE);
+
+                        char c;
+                        int msglen = 0;
+                        
+                        while(read(i, &c, 1) > 0) {
+                            msg[msglen] = c;
+                            msglen++;
+                        }
+
+                        msg[--msglen]='\0';
+
+                        msglen = send_msg(servfd, msg);
+
+                        if(msglen == -1) {
+                            perror("send");
+                            close_socket(servfd);
+                        }
+                    }
+                #endif
             }
         }
     }
