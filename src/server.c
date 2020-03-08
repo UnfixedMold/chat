@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 	#define _WIN32_WINNT 0x0A00
@@ -13,12 +14,12 @@
 	#include <unistd.h>
 	#include <netinet/in.h>
 	#include <arpa/inet.h>
-
 #endif
 
 #include "../headers/helpers.h"
 
 #define PORT "3490"
+#define BACKLOG 10
 
 int get_listener_socket() {
 
@@ -38,14 +39,14 @@ int get_listener_socket() {
 
 	status = getaddrinfo(NULL, PORT, &hints, &servinfo);
 
-	if(status == -1) {
+	if(status != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
 		return -1;
 	}
 
 	struct addrinfo *res = servinfo;
 
-	for(struct addrinfo *res = servinfo; res != NULL; res=res->ai_next) {
+	for(; res != NULL; res=res->ai_next) {
 
 		listener = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
@@ -74,7 +75,7 @@ int get_listener_socket() {
 
   	freeaddrinfo(servinfo);
 
-	if (listen(listener, 10) == -1) {
+	if (listen(listener, BACKLOG) == -1) {
 		perror("listen");
 		return -1;
   	}
@@ -109,14 +110,12 @@ int main() {
 
 	fdmax = listener;
 
-	char buf[256];
-	int rbytes;
-
 	while(1) {
 		tempreadfds = readfds;
 
 		if(select(fdmax + 1, &tempreadfds, NULL, NULL, NULL) == -1) {
 			perror("select");
+			close_socket(listener);
 			exit(2);
 		}
 
@@ -150,30 +149,36 @@ int main() {
 						#else
 							printf("Client connected!\n");
 						#endif
+						
+						// char msg[MSGSIZE] ="hellohellohellohellohellohellohelhellohellohellohellohellohellohelhellohellohellohellohellohellohel";
+						// int msglen = send_msg(clientfd, msg);
+
+						// if(msglen == -1) {
+						// 	perror("send");
+						// 	close_socket(clientfd);
+						// 	FD_CLR(clientfd, &readfds);
+						// }
 					}
-				} else {
-					rbytes = recv(i, buf, sizeof buf, 0);
+				}
+				else {
+					char msg[MSGSIZE];
+					int msglen = recv_msg(i, msg);
 
-					if(rbytes<=0) {
+					if(msglen <= 0) {
 
-						switch(rbytes) {
+						switch(msglen) {
 							case -1:
 								perror("recv");
 								break;
-
 							case 0:
-								printf("connection closed!\n");
+								printf("socket %d connection closed!\n", i);
 								break;
 						};
-						
+
 						close_socket(i);
 						FD_CLR(i, &readfds);
-						
 					} else {
-						
-						buf[rbytes] = '\0';
-
-						printf("%d: %s\n", i, buf);
+						printf("%d: %s\n", i, msg);
 					}
 				}
 			};
