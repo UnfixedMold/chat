@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
 	#define _WIN32_WINNT 0x0A00

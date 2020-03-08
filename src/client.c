@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/fcntl.h>
 
 #ifdef _WIN32
 	#define _WIN32_WINNT 0x0A00
@@ -89,6 +90,8 @@ int main(int argc, char *argv[]) {
     FD_SET(STDIN, &readfds);
     FD_SET(servfd, &readfds);
 
+    fcntl(STDIN, F_SETFL, O_NONBLOCK);
+
     while(1) {
 
         tempreadfds = readfds;
@@ -103,11 +106,31 @@ int main(int argc, char *argv[]) {
 			if(FD_ISSET(i, &tempreadfds)) {
 
                 if(i == STDIN) {
-                    printf("key pressed\n");
+
+                    char msg[MSGSIZE];
+                    memset(msg,0, MSGSIZE);
+
+                    char c;
+                    int msglen = 0;
+                    
+                    while(read(i, &c, 1) > 0) {
+                        msg[msglen] = c;
+                        msglen++;
+                    }
+
+                    msg[--msglen]='\0';
+
+                    msglen = send_msg(servfd, msg);
+
+                    if(msglen == -1) {
+                        perror("send");
+                        close_socket(servfd);
+                    }
 
                 } else if(i == servfd) {
                     
                     char msg[MSGSIZE];
+                    memset(msg,0, MSGSIZE);
 
                     int msglen = recv_msg(i, msg);
 
@@ -122,26 +145,15 @@ int main(int argc, char *argv[]) {
 								break;
 						};
 						close_socket(i);
-						FD_CLR(i, &readfds);
+                        exit(3);
 					} else {
-						printf("%d: %s\n", i, msg);
+						printf("%s\n", msg);
 					}
                 }
             }
         }
     }
-
-    // }
-
-    // char msg[MSGSIZE] ="hellohellohellohellohellohellohelhellohellohellohellohellohellohelhellohellohellohellohellohellohel";
-    // int msglen = send_msg(servfd, msg);
-
-    // if(msglen == -1) {
-    //     perror("send");
-    //     close_socket(servfd);
-    // }
     
-    printf("should close socket \n");
     close_socket(servfd);
 
 	#ifdef _WIN32

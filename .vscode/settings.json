@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "helpers.h": "c"
+        "helpers.h": "c",
+        "stdint.h": "c"
     }
 }

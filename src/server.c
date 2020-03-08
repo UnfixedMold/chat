@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 #include <stdint.h>
 
@@ -94,7 +93,7 @@ int main() {
 
 	if(listener == -1) {
 		fprintf(stderr, "error getting listening socket\n");
-		exit(1);
+		goto EXIT;
 	}
 
 	printf("Listening on port %s\n", PORT);
@@ -116,7 +115,7 @@ int main() {
 		if(select(fdmax + 1, &tempreadfds, NULL, NULL, NULL) == -1) {
 			perror("select");
 			close_socket(listener);
-			exit(2);
+			goto EXIT;
 		}
 
 		for(int i=0; i<=fdmax; i++) {
@@ -149,18 +148,8 @@ int main() {
 						#else
 							printf("Client connected!\n");
 						#endif
-						
-						// char msg[MSGSIZE] ="hellohellohellohellohellohellohelhellohellohellohellohellohellohelhellohellohellohellohellohellohel";
-						// int msglen = send_msg(clientfd, msg);
-
-						// if(msglen == -1) {
-						// 	perror("send");
-						// 	close_socket(clientfd);
-						// 	FD_CLR(clientfd, &readfds);
-						// }
 					}
-				}
-				else {
+				} else {
 					char msg[MSGSIZE];
 					int msglen = recv_msg(i, msg);
 
@@ -177,13 +166,29 @@ int main() {
 
 						close_socket(i);
 						FD_CLR(i, &readfds);
+
 					} else {
-						printf("%d: %s\n", i, msg);
+
+						for(int j=0; j<=fdmax; j++) {
+
+							if(j != listener && j!=i & FD_ISSET(j, &readfds)) {
+							
+								int msglen = send_msg(j, msg);
+
+								if(msglen == -1) {
+									perror("send");
+									close_socket(j);
+									FD_CLR(j, &readfds);
+								}
+							}
+						}
 					}
 				}
-			};
+			}
 		}
 	}
+
+	EXIT:
 
 	#ifdef _WIN32
 		WSACleanup();

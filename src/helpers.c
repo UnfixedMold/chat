@@ -36,7 +36,7 @@ int send_msg(int sockfd, char *msg) {
     }
 
     memcpy(buf, &buflen, 2);
-    strcpy(buf + 2, msg);
+    memcpy(buf + 2, msg, msglen);
     
     while(bsent < buflen) {
 
@@ -49,13 +49,6 @@ int send_msg(int sockfd, char *msg) {
 
        bsent += n;
     }
-
-    // memset(msg, 0, buflen);
-    // memset(&buflen, 0, 2);
-
-    // memcpy(&buflen, buf, 2);
-    // strcpy(msg, buf + 2);
-    // printf("%d %s\n", buflen, msg);
 
     free(buf);
 
@@ -82,7 +75,7 @@ int recv_msg(int sockfd, char *msg) {
 		}
 	}
 
-	strcpy(msg, buf + 2);
+	memcpy(msg, buf + 2, msglen);
 	msg[msglen] = '\0';
 
 	return msglen;
