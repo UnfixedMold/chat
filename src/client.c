@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     if(argc !=3 ) {
        fprintf(stderr,"err: hostname and port expected\n");
-       exit(1);
+       return 0;
     }
 
     char *hostname = argv[1], *port = argv[2];
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
 
     if(servfd == -1) {
         printf("failed to get server socket\n");
-        exit(2);
+        goto EXIT;
     }
 
     fd_set readfds, tempreadfds;
@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
 		if(select(fdmax + 1, &tempreadfds, NULL, NULL, NULL) == -1) {
 			perror("select");
             close_socket(servfd);
-			exit(2);
+			goto EXIT;
 		}
 
         for(int i=0; i<=fdmax; i++) {
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 								break;
 						};
 						close_socket(i);
-                        exit(3);
+                        goto EXIT;
 					} else {
 						printf("%s\n", msg);
 					}
@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    close_socket(servfd);
+    EXIT:
 
 	#ifdef _WIN32
 		WSACleanup();
